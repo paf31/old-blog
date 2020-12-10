@@ -1,0 +1,79 @@
+SUNDAY, FEBRUARY 27, 2011
+Purity - A CLR-Hosted Total Functional Programming Langauge
+Note: This post refers to an outdated version of the language syntax. Up-to-date examples can be found on the Purity Wiki.
+
+My new project is a total functional programming language compiler hosted on the CLR. The project is hosted on github here along with some code samples: http://github.com/paf31/Purity.
+
+The first commit contains a very rough first version, and the project is very much a work-in-progress (collaborators are very welcome!). I'd be very appreciative of comments, suggestions, etc.
+
+Introduction to Purity
+
+Purity is a total functional programming language inspired conceptually and syntactically by languages such as Haskell and Charity. Purity programs compile to .NET libraries via the Reflection.Emit library and the resulting libraries can be used from other .NET languages.
+
+Purity programs consist of three types of declarations: functors, types and data. Functors and types are defined by the grammar:
+F ::= id        ; Identity functor
+    | const T   ; Constant functor
+    | F + F     ; Sum functor
+    | F . F     ; Product functor
+    | T -> F    ; Arrow functor
+
+T ::= lfix F    ; Least fixed point type
+    | gfix F    ; Greatest fixed point type
+    | T + T     ; Sum type
+    | T . T     ; Product type
+    | T -> T    ; Arrow type
+    | F[T]      ; Functor application
+All names in Purity are syntactic-sugar only. All names are removed prior to compilation (this is likely to change). Forward-references are not allowed.
+
+Functors, types and data are introduced using the functor, type and data keywords:
+type Empty = lfix id
+type Unit = Empty -> Empty
+functor Maybe = const Unit + id
+data Unit Unique = id
+Data declarations include a type, a name and an expression. Expressions are defined by the following grammar:
+D ::= id          ; Identity
+    | const D     ; Constant
+    | inl         ; Injection into the left addend in a sum
+    | inr         ; Injection into the right addend in a sum
+    | outl        ; Projection from the left factor of a product
+    | outr        ; Projection from the right factor of a product
+    | D . D       ; Function composition
+    | D D         ; Function application
+    | curry D     ; Curried function
+    | uncurry D   ; Uncurried function
+    | cl D        ; Composition on the left
+    | cr D        ; Composition on the right
+    | (D, D)      ; Pair of functions into a product
+    | <D, D>      ; Pair of functions out of a sum
+    | (|D|)       ; Catamorphism
+    | {|D|}       ; Anamorphism
+    | in          ; Coalgebra morphism for a fixed point type
+    | out         ; Algebra morphism for a fixed point type
+Getting Started
+
+The Purity code can be checked out or downloaded from GitHub and will compile with Visual Studio 2010 Express Edition.
+
+I will be writing a lot of blog posts on various aspects of the compiler source and its programs soon, but for now here is a simple Purity program explained line-by-line.
+
+The program below develops a catamorphism which sums a list of natural numbers. We start by defining the empty and unit types and the sole inhabitant of the unit type (in fact this the only way we can get off the ground!):
+type Empty = lfix id
+type Unit = Empty -> Empty
+data Unit Unique = id
+Now we can define the type of natural numbers as the least fixed point of a functor:
+functor Natf = const Unit + id
+type Nat = lfix Natf
+The natural number type has two constructors:
+data Nat Zero = out . inl Unique
+data Nat -> Nat Succ = out . inr
+We can define addition of natural numbers by catamorphism:
+data Nat -> Nat -> Nat Add = (|<const id, cl Succ>|)
+This line may need some explanation: The generator of the catamorphism sends zero to the identity function on naturals, and the addition function for a successor is given by composition on the left or right of the addition function with the successor function.
+
+We also define the type of lists of natural numbers:
+functor Listf = const Unit + const Nat . id
+data List = lfix Listf
+Finally, we can define the sum function as a catamorphism. The sum of an empty list is zero and uncurrying the add function gives a function from a sum and the next natural as a pair to the full sum:
+data List -> Nat Sum = (|<const Zero, uncurry Add>|)
+The code above can be copied into a file Nat.p and compiled with the command
+compile.exe Nat.p Nat.dll
+I will be writing more posts about the language and the compiler soon. Please use the comment area below to leave any suggestions or comments.

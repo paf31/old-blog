@@ -1,0 +1,100 @@
+SUNDAY, MAY 1, 2011
+New Language Features Available in the Purity Silverlight Demo
+I've updated the Try Purity! Silverlight demo to incorporate the latest language features which have been committed to the Purity Git repository. The language syntax has changed significantly since I posted the original demo, and the sample code has been updated accordingly. Here is a summary of the latest changes:
+
+Support For Generic Types
+
+The language now supports generic types and generic data declarations in a restricted form.
+
+Type declarations may take generic parameters. When compiled, these type parameters will be maintained in the generated CIL code and visible when imported into a C# project for example.
+
+A good example of generic types and generic data declarations is given in the quicksort example.
+
+The type of a data declaration may contain generic parameters. However, when a generic data declaration is referenced by name, it must be possible to instantiate the type of the declaration to a non-generic type. To put it another way, there is no such thing as a forall type in the type system. This restriction is placed so that it is not possible to allow general recursion into the language by means of an explicit fixed point combinator.
+
+It is possible to see this restriction in effect in the REPL. With the following definitions of the S and K combinators:
+
+data S = x => y => z => $x $z ($y $z)
+data K = x => y => $x
+An attempt to define the application SKK will result in the following error:
+Universal types must be quantified at the outermost level.
+Displaying the types of the S and K combinators (:d) reveals the problem:
+S : (T1? -> T2? -> T3?) -> (T1? -> T2?) -> T1? -> T3?
+K : T4? -> T5? -> T4?
+Attempting to unify the first argument of S with the type of K gives T2 = T5, T3 = T4, and unifying the second argument with the type of K gives T1 = T4, T2 = T5 -> T4. This gives the type of SKK as T3 -> T3 as one would expect, but the principal type of the first subexpression K is T3 -> T2 -> T3, which is univerally quantified over T2, but not at the outermost level.
+
+
+Note that this expression would fail to type check anyway due to the presence of the infinite type T5 = T5 -> T4.
+
+No More Polymorphic In, Out, Cata and Ana
+
+I have removed the keywords 'in' and 'out' and the notation for catamorphism and anamorphism. Previously, all four were polymorphic, in the sense that the compiler would try to infer the correct functor at compile-time. This was problematic in some cases, and in all cases required a type annotation to assist the compiler in the type-inference step.
+
+In the current version of the compiler, a type is declared along with names for its constructor and destructor.
+
+In the case of a boxed type, a type declaration looks like this:
+type (Eq A?, MakeEq, UnmakeEq) = A? -> A? -> Bool
+The general syntax for a boxed type declaration is
+type (<type name> [<type parameters>],
+      [constructor name],
+      [destructor name]) = <type definition>
+The constructor and destructor name may be omitted. If names are given, then the constructor and destructor functions may be referenced later in the code.
+
+In the case of a fixed point type, in addition to the constructor and destructor names, one may optionally name the fold or unfold function. The general syntax is as follows:
+type (<type name> [<type parameters>],
+      [constructor name],
+      [destructor name]],
+      [fold name]) = lfix <functor definition>
+type (<type name> [<type parameters>],
+      [constructor name],
+      [destructor name]],
+      [unfold name]) = gfix <functor definition>
+For example:
+type (List A?,
+      MakeList,
+      UnmakeList,
+      FoldList) = lfix X. Unit + A? . X?
+type (Stream A?,
+      MakeStream,
+      UnmakeStream,
+      UnfoldStream) = gfix X. A? . X?
+In the present case, the named functions would be declared with the following types (one can try this in the REPL by entering the code above and using the command ':d' to see all data declarations and their types):
+MakeEq : (A? -> A? -> Bool) -> Eq A?
+UnmakeEq : Eq A? -> (A? -> A? -> Bool) 
+MakeList : Unit + A? . List A? -> List A?
+UnmakeList : List A? -> Unit + A? . List A?
+FoldList : (Unit + A? . T? -> T?) -> List A? -> T?
+MakeStream : A? . Stream A? -> Stream A?
+UnmakeStream : Stream A? -> A? . Stream A?
+UnfoldStream : (T? -> A? . T?) -> T? -> Stream A?
+The advantage of this approach is that any expression can be type checked bottom-up by a simple algorithm without the need for type annotations. I will write more about this in another post.
+
+No More Explicit Functor Declarations
+
+Now that the language has support for generic type declarations, there is no need for an explicit functor declaration syntax, and accordingly, this has been removed.
+
+In the current version of the language, a functor is defined as a type with a selected generic type parameter. The syntax for defining a functor is as follows:
+<type parameter name>. <type definition>
+The type definition mentions the type parameter using the usual question-mark syntax for generic type parameters. For example, the functor underlying a binary tree of node type A is defined as follows:
+X. A? + X? . X?
+The advantage is that type definitions and functor definitions now take the same form, and overall the syntax is more terse (compare with the old notation, using the const keyword to introduce a constant functor).
+
+One disadvantage is that not all type definitions define valid functor definitions. This was previously enforced syntactically, but now the user will receive a compile-time error if any of the following are true:
+An arrow type contains the functor's type parameter in a positive position.
+A type synonym contains a type parameter which mentions the functor's type parameter.
+
+Module Declarations (Not in the Silverlight REPL)
+
+It is now possible to compile a module to a DLL using the compiler and then import that module with an import statement. The type declarations and data declarations in the module will then be visible to the importing module's code.
+
+A module name is defined in a single-line header:
+module Module1
+
+data Foo = ...
+If this code is compiled to a DLL which resides in the working directory, then it can be imported as follows:
+module Module2
+
+import Module1
+
+data Bar = ... Foo ... 
+Modules can also be imported at the REPL, and import statements can be placed anywhere in the code, as long as import statements precede type and data declarations making use of the declarations in the imported module.

@@ -1,0 +1,65 @@
+THURSDAY, FEBRUARY 17, 2011
+The Ins and Outs of Fixed Point Types
+The purpose of this note is to derive the F (co-)algebra structures on the least and greatest fixed points of F expressed in terms of universal and existential types. The method also extends to mutually recursive types by virtue of the fact that these types are the fixed points of functors on the power category C^n for some n, as explained in my last post.
+
+Least Fixed Points
+
+We defined the least fixed point of F as the type
+Mu F := { cata :: forall T. (FT -> T) -> T }
+We are also given a mapping on arrows:
+fmap :: forall S T. (S -> T) -> FS -> FT
+The goal is to define an algebra structure and a coalgebra structure on this type:
+in  ::   Mu F -> F Mu F out :: F Mu F ->   Mu F
+To define the algebra structure out, we use fmap to lift cata up one level in the structure:
+out x = { \T. \seed. seed (fmap (\y. cata[T] y seed) x) }
+To define the inverse in, observe that since out . in = id, we have
+in = fmap out . fmap in . in
+   = cata fmap out
+by the universal property of cata.
+
+Greatest Fixed Points
+
+The case of greatest fixed points is exactly dual. We defined the greatest fixed point as
+The existential type Nu F has an associated map ana:
+ana :: forall T. T -> (T -> FT) -> Nu F
+ana = \T. \t f. pack T t f as Nu F
+Again we want to define algebra and coalgebra structures:
+in  ::   Nu F -> F Nu F
+out :: F Nu F ->   Nu F
+This time we will start with the coalgebra structure. The only way we can get something of type F Nu F is to unpack the existential type:
+in x = let x = (T, t, f) in
+               fmap (\y. ana y f) (f t)
+To define the map out, we reason as follows:
+out = out . fmap out . fmap in
+    = ana fmap in
+by the universal property of ana.
+
+Mutually Recursive Types
+
+The methods above continue to work in the power category C^n and so by replacing functors and arrows in the power category with tuples of functors and tuples of arrows in the category C, we can express mututally recursive types and functions in the category C.
+The second example below shows how this can be done for the case of the (co-)even and (co-)odd natural numbers defined as a mutually recursive pair of types.
+
+Using just the methods cata, ana, in and out we can build a large collection of library methods manipulating odd/even (co-)naturals. For example, addition and multiplication of even numbers can be defined by
+add e1 e2 = cata e1 <const e2, out1> out2
+mult e1 e2 = cata e1 <zero, add (const e2 inr)> add e2
+where zero = out1 inl and out1 and out2 denote the two parts of the morphism out in the category C^2.
+
+Alternatively, in C#, using the definitions given in the example code below, we could write
+Func<Even, Even, Even> add = (e1, e2) => e1.Cata<Even, Odd>(
+    f1 => f1.IsZero
+        ? e2
+        : Nat.Out1(f1),
+    Nat.Out2);
+
+Func<Even, Even, Even> mult = (e1, e2) => e1.Cata<Even, Even>(
+    f1 => f1.IsZero
+        ? zero
+        : add(e2, f1.Pred),
+    f2 => add(e2, f2.Pred));
+Example Code
+
+(Co-)natural numbers
+(Co-)even and (co-)odd numbers using mutually recursive types
+
+Nu F := exists T. T * (T -> FT)     
+     := forall R. (forall T. T -> (T -> FT) -> R) -> R

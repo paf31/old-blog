@@ -1,0 +1,88 @@
+THURSDAY, JANUARY 27, 2011
+A Lemma on Fixed Points
+I was reading some of my older notes on least fixed point types and found this. It's hardly groundbreaking I'm sure you'll agree, but I thought it was quite a nice little result.
+
+Lemma
+
+Suppose
+
+F : (X, Y) -> (F_1 X, F_2 (X, Y))
+
+is a functor with an initial algebra. Then the initial algebra is isomorphic to
+
+mu(F) ~ (mu(F_1), mu(\X -> F_2(mu(F_1), X)))
+
+when all defined terms exist.
+
+Example
+
+Let F (X, Y) = (1 + X, 1 + X * Y).
+
+By the lemma we have
+
+Mu F = (Mu \X.(1 + X), Mu \Y.(1 + Y * Mu \X. (1 + X)))
+That is, Mu F = (Nat, List Nat).
+
+Proof
+
+We show that the term on the right of the isomorphism relation is an initial F-algebra. Then, by uniqueness, it must be isomorphic to Mu F.
+
+Let
+
+Chi(X) = F_2(mu(F_1), X)
+
+First we show that (Mu F_1, Mu Chi) is an F-algebra. The algebra morphism is
+
+\begin{aligned}
+F\left(\mu F_{1}, \mu \chi\right) &=\left(F_{1} \mu F_{1}, F_{2}\left(\mu F_{1}, \mu \chi\right)\right) \\
+&=\left(F_{1} \mu F_{1}, \chi(\mu \chi)\right) \\
+& \rightarrow \quad\left(\mu F_{1}, \mu \chi\right)
+\end{aligned}
+
+where the two components of the final map are the initial algebra morphisms for Mu F_1 and Chi.
+
+It is required to prove that (Mu F_1, Mu Chi) is an initial algebra, that is, for any F algebra F A -> A, there is a unique morphism of algebras (Mu F_1, Mu Chi) -> A.
+
+We seek morphisms
+
+mu(F_1) -> pi_1(A)
+mu(Chi) -> pi_2(A)
+
+such that the following diagrams commute:
+
+\begin{array}{c}
+F_{1} \mu F_{1} \\
+\mid \text { out } \\
+\mu F_{1}
+\end{array} \longrightarrow \quad \begin{array}{c}
+F_{1} \pi_{1} A \\
+\phi \\
+\pi_{1} A
+\end{array}
+
+\begin{array}{ll}
+\chi \mu \chi & \longrightarrow & \chi \pi_{2} A \\
+\mid \text {out} & \\
+\mu \chi & \longrightarrow & \pi_{2} A
+\end{array}
+
+The first morphism is determined uniquely by the definition of Mu F_1.
+
+We just need to show that pi_2 A is a Chi-algebra. Then, the second morphism is given uniquely by the definition of Mu Chi.
+
+We have morphisms
+
+\begin{array}{ccccc}
+f & : & \mu F_{1} & \rightarrow & \pi_{1} A \\
+\pi_{2} a & : & F_{2}\left(\pi_{1} A, \pi_{2} A\right) & \rightarrow & \pi_{2} A
+\end{array}
+
+which compose to give
+
+\begin{aligned}
+\chi \pi_{2} A &=F_{2}\left(\mu F_{1}, \pi_{2} A\right) \\
+& \rightarrow F_{2}\left(\pi_{1} A, \pi_{2} A\right) \\
+& \rightarrow \quad \pi_{2} A
+\end{aligned}
+
+﻿This completes the proof.

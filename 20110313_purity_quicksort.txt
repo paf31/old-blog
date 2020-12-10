@@ -1,0 +1,75 @@
+SUNDAY, MARCH 13, 2011
+Purity Example - Quicksort
+With the recent additions to the Purity compiler, it is now possible to represent algorithms more succinctly. Below is an implementation of the quicksort algorithm.
+
+The key part of the algorithm is the catamorphism split, which takes a list entry x and a list and divides the list into two parts: those elements less than or equal to x, and those greater than x. Quicksort is then implemented as a catamorphism using split at each stage to add a new element to the smaller sorted list.
+
+The source can be compiled by copying it into a text file and running the compile.exe tool on the command line.
+
+Since all catamorphisms terminate, we can regard the following program as a proof that the quicksort algorithm terminates on all inputs.
+
+Once the file is compiled, the generated DLL can be used from C#, although the generated code is far from optimal due to all of the lambda expressions which have to be eliminated!
+
+# empty and unit types
+
+type (Void,,,) = lfix id
+type (Unit,MakeUnit,) = Void -> Void
+data Unique = MakeUnit id
+
+# natural number type
+
+type (Nat,MakeNat,UnmakeNat,FoldNat) = lfix const Unit + id
+
+data Zero = MakeNat . inl Unique
+data Succ = MakeNat . inr
+data Pred = <const Zero, id> . UnmakeNat
+data Add = FoldNat <const id, f => $f . Succ>
+
+# generic list type
+
+type (List A?,MakeList,UnmakeList,FoldList) = lfix const Unit + const A? . id
+
+data Empty = MakeList . inl Unique
+data Cons = curry MakeList . inr
+
+# boolean type
+
+type (Bool,MakeBool,UnmakeBool) = Unit + Unit
+data True = MakeBool (inl Unique)
+data False = MakeBool (inr Unique)
+data IfThenElse = b => t => f => <const $t, const $f> . UnmakeBool $b
+
+# a comparator compares pairs of values
+
+type (Comparator A?,MakeComparator,Compare) = A? -> A? -> Bool
+
+# a comparator for natural numbers
+
+data Leq = MakeComparator (FoldNat <const (<const True, const False> . UnmakeNat), f => $f . Pred>)
+
+# concatenate two lists
+
+data Concat = FoldList <const id, uncurry (x => f => (Cons $x) . $f)>
+
+# split a list into the list of elements less than x and the list greater than x
+
+data Split = c => x => FoldList
+                     <
+                        (const Empty, const Empty), 
+                        uncurry (
+                           next => ls => 
+                             IfThenElse (Compare $c $x $next)
+                               ((curry id) (Cons $next (outl $ls)) (outr $ls))
+                               ((curry id) (outl $ls) (Cons $next (outr $ls)))
+                        )
+                     >
+
+# the quicksort algorithm
+
+data Quicksort = c => FoldList
+                    <
+                       const Empty, 
+                       uncurry (x => 
+                          (ls => Concat (outl $ls) (Cons $x (outr $ls))) . (Split $c $x)
+                       )
+                    >

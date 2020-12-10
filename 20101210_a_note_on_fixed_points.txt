@@ -1,0 +1,49 @@
+FRIDAY, DECEMBER 10, 2010
+A short note on fixed point types
+In my earlier post, I showed how we might encode least fixed point types in C# using generics:
+cata :: forall x. (f x -> x) -> x
+In that post I stated that, unlike the standard encoding as the initial algebra of a functor on types, we don't need to use the functorial structure to define our type.
+
+However, it is instructive to look at what happened to the functor laws:
+We encoded the greatest fixed point of a functor as the type
+f id = id
+(Func-Id)﻿
+f ( g . h) = f g . f h
+(Func-Comp)﻿
+Let's take a look at the diagram defining the least fixed point as an initial algebra:
+
+
+
+
+Applying the laws above we get the diagrams:
+
+
+
+
+
+
+(Func-Id)turns into the assumption that cata in = id, while (Func-Comp) translates to the implication
+
+f . phi = psi (F f) => f cata phi = cata psi
+more commonly known as cata-fusion.
+
+In the case of greatest fixed points, we have the following definition as a final coalgebra:
+
+
+
+We used the following type to represent the greatest fixed point:
+forall r. (forall x. x * (x -> f x) -> r) -> r
+Consider the type of the anamorphism function:
+ana :: forall x . x -> (x -> f x) -> Nu f
+where
+ana X x g = \R. \f. f x g
+Again, applying the functor laws to the diagram which defines the greatest fixed point as a final coalgebra, we get the diagrams:
+
+
+
+
+
+
+and the laws ana out = id and
+(F f) . psi = phi . f => ana phi . f = ana psi
+In both cases, the first law shows that, as one would expect, the infinitesimal generators in and out fold and unfold respectively to give the identity. The second of the two laws shows that we can push a function through a catamorphism or an anamorphism. This is an optimization transformation - instead of applying a function to the input/output at each step of a recursive function, we can apply the function once at the start of the calculation in the case of an anamorphism, or once at the end in the case of a catamorphism.

@@ -1,0 +1,44 @@
+MONDAY, JANUARY 10, 2011
+Yet Another LINQ to Objects Implementation
+A few days ago, I was reading Bart De Smet's blog post on MinLinq, wherein the methods of C#'s LINQ to Objects (a.k.a. LINQ to IEnumerable) are distilled down to a few core methods : Empty, Return, Ana, Cata, and Bind.
+
+It's also quite cool to try to rewrite LINQ to Objects in terms of streams as greatest fixed points.
+
+Noting that the type of (possibly infinite) streams of elements of type T can be interpreted as the greatest fixed point of the functor X -> 1 + T.X and using some of the methods described in my previous posts (here and here), we arrive at the definition:
+class StreamF<A, T>
+{
+    public StreamF(T seed, Func<T, Either<Unit, Tuple<T, A>>> generator)
+    {
+        Seed = seed;
+        Generator = generator;
+    }
+
+    public T Seed
+    {
+        get;
+        set;
+    }
+
+    public Func<T, Either<Unit, Tuple<T, A>>> Generator
+    {
+        get;
+        set;
+    }
+}
+
+interface StreamFunction<A, R>
+{
+    R Apply<T>(StreamF<A, T> n);
+}
+
+interface Stream<A>
+{
+    R Apply<R>(StreamFunction<A, R> f);
+}
+Think of a stream as a state machine with an underlying state of type T, where T is existentially hidden, whose transition function at each step either terminates or spits out a new T and an element of the stream.
+
+Implementing most of the five methods mentioned above is quite easy in this context. The one tricky method is Bind. Flattening a stream of streams into a single stream can be problematic when streams are empty. When the first stream terminates, we need to look ahead to find the next non-empty stream and then graft that onto the end of the first.
+
+One other tricky point is that since our streams are potentially infinite, catamorphisms may not terminate, so we need to perform some manual optimizations for tail-recursive methods to avoid stack overflows.
+
+Anyway, without further ado, I present my implementation of (part of) LINQ to Objects.
